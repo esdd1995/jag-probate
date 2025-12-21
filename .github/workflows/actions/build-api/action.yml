@@ -1,0 +1,44 @@
+name: Build API
+description: Builds the API codebase with quality gates
+
+inputs:
+  working_directory:
+    description: The working directory where the code will be built.
+    required: true
+  dotnet_version:
+    description: The .NET version that will be used.
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet_version }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+
+    - name: Build API
+      run: dotnet build --configuration Release --no-restore
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}/api
+
+    - name: Build DB
+      run: dotnet build --configuration Release --no-restore
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}/db
+
+    - name: Spell check
+      uses: streetsidesoftware/cspell-action@v6
+      with:
+        files: |
+          api/**/*.cs
+          db/**/*.cs
+        config: .github/cspell.json
+        strict: true
+        incremental_files_only: false
