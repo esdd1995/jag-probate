@@ -18,8 +18,10 @@ namespace Probate.Api
 
             try
             {
-                logger.LogInformation("Application starting in {Environment} environment",
-                    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
+                logger.LogInformation(
+                    "Application starting in {Environment} environment",
+                    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                );
 
                 await RunMigrationsAsync(host, logger);
 

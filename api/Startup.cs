@@ -34,8 +34,8 @@ namespace Probate.Api
             services.AddScoped<MigrationService>();
 
             services.AddDbContext<ProbateDbContext>(options =>
-                {
-                    var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            {
+                var connectionString = Configuration.GetConnectionString("DefaultConnection");
                     
                     options.UseNpgsql(connectionString, npg =>
                     {
