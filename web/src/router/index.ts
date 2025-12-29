@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
-import HomeView from '../views/HomeView.vue';
+import HomeView from '../views/home/HomeView.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -11,18 +11,23 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/cases',
     name: 'Cases',
-    component: () => import('../views/CasesView.vue'),
+    component: () => import('../views/cases/ListView.vue'),
+  },
+  {
+    path: '/cases/new',
+    name: 'CreateCase',
+    component: () => import('../views/cases/CreateView.vue'),
   },
   {
     path: '/cases/:id',
     name: 'CaseDetail',
-    component: () => import('../views/CaseDetailView.vue'),
+    component: () => import('../views/cases/DetailView.vue'),
     props: true,
   },
   {
     path: '/about',
     name: 'About',
-    component: () => import('../views/AboutView.vue'),
+    component: () => import('../views/about/AboutView.vue'),
   },
 ];
 
