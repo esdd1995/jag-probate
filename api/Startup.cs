@@ -52,26 +52,31 @@ namespace Probate.Api
                     options.EnableSensitiveDataLogging();
             });
 
-
-            string corsDomain = Configuration.GetValue<string>("CORS_DOMAIN") ?? "http://localhost:8080";
+            string corsDomain =
+                Configuration.GetValue<string>("CORS_DOMAIN") ?? "http://localhost:8080";
 
             services.AddCors(options =>
             {
-                options.AddPolicy("ProbateCorsPolicy",
-                    builder => builder
-                        .WithOrigins(corsDomain.Split(','))
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials());
+                options.AddPolicy(
+                    "ProbateCorsPolicy",
+                    builder =>
+                        builder
+                            .WithOrigins(corsDomain.Split(','))
+                            .AllowAnyMethod()
+                            .AllowAnyHeader()
+                            .AllowCredentials()
+                );
             });
 
-
-            services.AddControllers()
+            services
+                .AddControllers()
                 .AddNewtonsoftJson(options =>
                 {
-                    options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+                    options.SerializerSettings.ContractResolver =
+                        new CamelCasePropertyNamesContractResolver();
                     options.SerializerSettings.Formatting = Formatting.Indented;
-                    options.SerializerSettings.DateFormatHandling = DateFormatHandling.IsoDateFormat;
+                    options.SerializerSettings.DateFormatHandling =
+                        DateFormatHandling.IsoDateFormat;
                     options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
                     options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
                     options.SerializerSettings.Converters.Add(new StringEnumConverter());
@@ -79,13 +84,16 @@ namespace Probate.Api
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo
-                {
-                    Title = "Jag-Probate API",
-                    Version = "v1",
-                    Description = "Probate Application System API"
-                });
-                
+                c.SwaggerDoc(
+                    "v1",
+                    new OpenApiInfo
+                    {
+                        Title = "Jag-Probate API",
+                        Version = "v1",
+                        Description = "Probate Application System API",
+                    }
+                );
+
                 c.EnableAnnotations();
             });
 

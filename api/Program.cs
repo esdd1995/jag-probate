@@ -49,8 +49,7 @@ namespace Probate.Api
 
             try
             {
-                await migrationService.ExecuteMigrationsAsync()
-                    .WaitAsync(cts.Token);
+                await migrationService.ExecuteMigrationsAsync().WaitAsync(cts.Token);
 
                 logger.LogInformation("Database migrations completed successfully");
             }
