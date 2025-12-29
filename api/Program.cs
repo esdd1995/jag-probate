@@ -31,7 +31,10 @@ namespace Probate.Api
             catch (Exception ex)
             {
                 logger.LogCritical(ex, "Application terminated unexpectedly");
-                throw new InvalidOperationException("Application terminated unexpectedly. See inner exception for details.", ex);
+                throw new InvalidOperationException(
+                    "Application terminated unexpectedly. See inner exception for details.",
+                    ex
+                );
             }
         }
 

@@ -36,17 +36,21 @@ namespace Probate.Api
             services.AddDbContext<ProbateDbContext>(options =>
             {
                 var connectionString = Configuration.GetConnectionString("DefaultConnection");
-                    
-                    options.UseNpgsql(connectionString, npg =>
-                    {
-                        npg.MigrationsAssembly("db");
-                        npg.EnableRetryOnFailure(3, TimeSpan.FromSeconds(2), null);
-                    }).UseSnakeCaseNamingConvention();
 
-                    if (CurrentEnvironment.IsDevelopment())
-                        options.EnableSensitiveDataLogging();
-                }
-            );
+                options
+                    .UseNpgsql(
+                        connectionString,
+                        npg =>
+                        {
+                            npg.MigrationsAssembly("db");
+                            npg.EnableRetryOnFailure(3, TimeSpan.FromSeconds(2), null);
+                        }
+                    )
+                    .UseSnakeCaseNamingConvention();
+
+                if (CurrentEnvironment.IsDevelopment())
+                    options.EnableSensitiveDataLogging();
+            });
 
 
             string corsDomain = Configuration.GetValue<string>("CORS_DOMAIN") ?? "http://localhost:8080";
