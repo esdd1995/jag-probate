@@ -68,7 +68,6 @@ jobs:
       - name: Install CSharpier
         run: |
           dotnet tool install -g csharpier
-          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Check CSharpier Formatting
         if: steps.find-csproj.outputs.csproj_files != ''
@@ -76,7 +75,7 @@ jobs:
           for csproj in ${{ steps.find-csproj.outputs.csproj_files }}; do
             project_dir=$(dirname "$csproj")
             echo "Checking CSharpier formatting for $project_dir"
-            dotnet csharpier --check "$project_dir"
+            dotnet tool run csharpier --check "$project_dir"
           done
 
       - name: Check Dotnet Format (Style)
