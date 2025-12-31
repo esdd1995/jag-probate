@@ -9,14 +9,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-changes:
-    name: Check for Backend changes
+  lint-backend:
+    name: Lint Backend
     runs-on: ubuntu-latest
-    outputs:
-      backend-changed: ${{ steps.filter.outputs.backend }}
+    env:
+      NUGET_CERT_REVOCATION_MODE: offline
+
     steps:
-      - name: Checkout repository
+      - name: Check out code
         uses: actions/checkout@v4
+        with:
+          clean: true
       
       - name: Check for file changes
         uses: dorny/paths-filter@v3
@@ -27,32 +30,20 @@ jobs:
               - 'api/**'
               - 'db/**'
 
-  lint:
-    name: Lint Backend Code
-    needs: check-changes
-    if: needs.check-changes.outputs.backend-changed == 'true'
-    runs-on: ubuntu-latest
-    env:
-      NUGET_CERT_REVOCATION_MODE: offline
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-        with:
-          clean: true
-
       - name: Get changed files
+        if: steps.filter.outputs.backend == 'true'
         id: changed-files
         uses: jitterbit/get-changed-files@v1
         continue-on-error: true
 
       - name: No C# files changed
+        if: steps.filter.outputs.backend == 'true' && steps.changed-files.outputs.added_modified == ''
         id: no-csharp
-        if: steps.changed-files.outputs.added_modified == ''
         run: echo "No C# files changed"
 
       # This step will loop over the changed files and find the nearest .csproj file for each one, then store the unique csproj files in a variable
       - name: Find csproj files
+        if: steps.filter.outputs.backend == 'true'
         id: find-csproj
         run: |
           csproj_files=()
@@ -79,17 +70,19 @@ jobs:
           echo "csproj_files=${csproj_files[*]}" >> $GITHUB_OUTPUT
 
       - name: Setup .NET
+        if: steps.filter.outputs.backend == 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
 
       - name: Install CSharpier
+        if: steps.filter.outputs.backend == 'true'
         run: |
           dotnet new tool-manifest --force
           dotnet tool install csharpier
 
       - name: Check CSharpier Formatting
-        if: steps.find-csproj.outputs.csproj_files != ''
+        if: steps.filter.outputs.backend == 'true' && steps.find-csproj.outputs.csproj_files != ''
         run: |
           for csproj in ${{ steps.find-csproj.outputs.csproj_files }}; do
             project_dir=$(dirname "$csproj")
@@ -98,7 +91,7 @@ jobs:
           done
 
       - name: Check Dotnet Format (Style)
-        if: steps.find-csproj.outputs.csproj_files != ''
+        if: steps.filter.outputs.backend == 'true' && steps.find-csproj.outputs.csproj_files != ''
         run: |
           for csproj in ${{ steps.find-csproj.outputs.csproj_files }}; do
             echo "Checking style formatting for $csproj"
@@ -106,28 +99,17 @@ jobs:
           done
 
       - name: Check Dotnet Format (Analyzers)
-        if: steps.find-csproj.outputs.csproj_files != ''
+        if: steps.filter.outputs.backend == 'true' && steps.find-csproj.outputs.csproj_files != ''
         run: |
           for csproj in ${{ steps.find-csproj.outputs.csproj_files }}; do
             echo "Checking analyzers for $csproj"
             dotnet format analyzers $csproj --verify-no-changes --verbosity diagnostic
           done
-
-  success:
-    name: Lint Backend
-    needs: [check-changes, lint]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check status
+      
+      - name: Summary
         run: |
-          if [[ "${{ needs.check-changes.outputs.backend-changed }}" == "false" ]]; then
-            echo "No Backend changes detected - skipping lint"
-            exit 0
-          elif [[ "${{ needs.lint.result }}" == "success" ]]; then
-            echo "Lint checks passed"
-            exit 0
+          if [[ "${{ steps.filter.outputs.backend }}" == "false" ]]; then
+            echo "✓ No Backend changes detected - check passed"
           else
-            echo "Lint checks failed"
-            exit 1
+            echo "✓ Lint checks completed successfully"
           fi

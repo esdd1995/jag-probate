@@ -17,11 +17,12 @@ env:
   WORKING_DIRECTORY: ./web
 
 jobs:
-  check-changes:
-    name: Check for Web changes
+  build-and-test-web:
+    name: Build and Test Web
     runs-on: ubuntu-latest
-    outputs:
-      web-changed: ${{ steps.filter.outputs.web }}
+    permissions:
+      packages: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,43 +37,17 @@ jobs:
               - '.github/workflows/build-and-test-web.yml'
               - '.github/workflows/actions/build-web/**'
 
-  build-and-test:
-    name: Build and Test Web (Node ${{ matrix.node-version }})
-    needs: check-changes
-    if: needs.check-changes.outputs.web-changed == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      packages: read
-
-    strategy:
-      matrix:
-        node-version: [22]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Building Web codebase
+        if: steps.filter.outputs.web == 'true'
         uses: ./.github/workflows/actions/build-web
         with:
           working_directory: ${{ env.WORKING_DIRECTORY }}
-          node_version: ${{ matrix.node-version }}
-
-  success:
-    name: Build and Test Web
-    needs: [check-changes, build-and-test]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check status
+          node_version: 22
+      
+      - name: Summary
         run: |
-          if [[ "${{ needs.check-changes.outputs.web-changed }}" == "false" ]]; then
-            echo "No Web changes detected - skipping build"
-            exit 0
-          elif [[ "${{ needs.build-and-test.result }}" == "success" ]]; then
-            echo "Build and tests passed"
-            exit 0
+          if [[ "${{ steps.filter.outputs.web }}" == "false" ]]; then
+            echo "✓ No Web changes detected - check passed"
           else
-            echo "Build or tests failed"
-            exit 1
+            echo "✓ Build and tests completed successfully"
           fi
