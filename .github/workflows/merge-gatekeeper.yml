@@ -12,14 +12,18 @@ concurrency:
 
 jobs:
   merge-gatekeeper:
+    name: All Checks Passed
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: []
     permissions:
       checks: read
       statuses: read
     steps:
-      - name: Run Merge Gatekeeper
+      - name: Wait for all required checks
         uses: upsidr/merge-gatekeeper@v1
-        if: github.event_name == 'pull_request'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           timeout: 1800
+          interval: 30
+          ignored: 'merge-gatekeeper,All Checks Passed'

@@ -4,11 +4,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - 'api/**'
-      - 'db/**'
-      - '.github/workflows/build-and-test-api.yml'
-      - '.github/workflows/actions/build-api/**'
 
   push:
     branches:
@@ -23,7 +18,30 @@ env:
   WORKING_DIRECTORY: .
 
 jobs:
+  check-changes:
+    name: Check for API changes
+    runs-on: ubuntu-latest
+    outputs:
+      api-changed: ${{ steps.filter.outputs.api }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Check for file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+              - 'db/**'
+              - '.github/workflows/build-and-test-api.yml'
+              - '.github/workflows/actions/build-api/**'
+
   build-and-test:
+    name: Build and Test API (.NET ${{ matrix.dotnet-major-version }}.${{ matrix.dotnet-minor-version }})
+    needs: check-changes
+    if: needs.check-changes.outputs.api-changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       packages: read
@@ -42,3 +60,22 @@ jobs:
         with:
           working_directory: ${{ env.WORKING_DIRECTORY }}
           dotnet_version: ${{ matrix.dotnet-major-version }}.${{ matrix.dotnet-minor-version }}
+
+  success:
+    name: Build and Test API
+    needs: [check-changes, build-and-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status
+        run: |
+          if [[ "${{ needs.check-changes.outputs.api-changed }}" == "false" ]]; then
+            echo "No API changes detected - skipping build"
+            exit 0
+          elif [[ "${{ needs.build-and-test.result }}" == "success" ]]; then
+            echo "Build and tests passed"
+            exit 0
+          else
+            echo "Build or tests failed"
+            exit 1
+          fi

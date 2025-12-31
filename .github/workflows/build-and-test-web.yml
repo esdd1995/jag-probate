@@ -4,10 +4,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - "web/**"
-      - '.github/workflows/build-and-test-web.yml'
-      - '.github/workflows/actions/build-web/**'
 
   push:
     branches:
@@ -21,7 +17,29 @@ env:
   WORKING_DIRECTORY: ./web
 
 jobs:
+  check-changes:
+    name: Check for Web changes
+    runs-on: ubuntu-latest
+    outputs:
+      web-changed: ${{ steps.filter.outputs.web }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Check for file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'web/**'
+              - '.github/workflows/build-and-test-web.yml'
+              - '.github/workflows/actions/build-web/**'
+
   build-and-test:
+    name: Build and Test Web (Node ${{ matrix.node-version }})
+    needs: check-changes
+    if: needs.check-changes.outputs.web-changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       packages: read
@@ -39,3 +57,22 @@ jobs:
         with:
           working_directory: ${{ env.WORKING_DIRECTORY }}
           node_version: ${{ matrix.node-version }}
+
+  success:
+    name: Build and Test Web
+    needs: [check-changes, build-and-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status
+        run: |
+          if [[ "${{ needs.check-changes.outputs.web-changed }}" == "false" ]]; then
+            echo "No Web changes detected - skipping build"
+            exit 0
+          elif [[ "${{ needs.build-and-test.result }}" == "success" ]]; then
+            echo "Build and tests passed"
+            exit 0
+          else
+            echo "Build or tests failed"
+            exit 1
+          fi

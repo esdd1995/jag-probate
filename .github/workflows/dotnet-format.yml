@@ -3,16 +3,34 @@ name: Lint Backend
 on:
   pull_request:
     branches: ["main"]
-    paths:
-      - "api/**"
-      - "db/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  check-changes:
+    name: Check for Backend changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend-changed: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Check for file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'api/**'
+              - 'db/**'
+
   lint:
+    name: Lint Backend Code
+    needs: check-changes
+    if: needs.check-changes.outputs.backend-changed == 'true'
     runs-on: ubuntu-latest
     env:
       NUGET_CERT_REVOCATION_MODE: offline
@@ -94,3 +112,22 @@ jobs:
             echo "Checking analyzers for $csproj"
             dotnet format analyzers $csproj --verify-no-changes --verbosity diagnostic
           done
+
+  success:
+    name: Lint Backend
+    needs: [check-changes, lint]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status
+        run: |
+          if [[ "${{ needs.check-changes.outputs.backend-changed }}" == "false" ]]; then
+            echo "No Backend changes detected - skipping lint"
+            exit 0
+          elif [[ "${{ needs.lint.result }}" == "success" ]]; then
+            echo "Lint checks passed"
+            exit 0
+          else
+            echo "Lint checks failed"
+            exit 1
+          fi
